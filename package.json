@@ -1,0 +1,32 @@
+{
+  "name": "connect4cli",
+  "version": "1.0.0",
+  "description": "A connect 4 line game in cli.",
+  "main": "./bin/cli.js",
+  "scripts": {
+    "start": "node ./api/app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ohpxho/connect4cli.git"
+  },
+  "keywords": [
+    "cli",
+    "node"
+  ],
+  "author": "ohpxho",
+  "license": "ISC",
+  "bin": {
+    "c4": "./bin/cli.js"
+  },
+  "dependencies": {
+    "boxen": "^7.0.1",
+    "chalk": "^4.0.0",
+    "dotenv": "^16.0.3",
+    "socket.io": "^4.5.4",
+    "socket.io-client": "^4.5.4",
+    "socketio": "^1.0.0",
+    "yargs": "^17.6.2"
+  }
+}
