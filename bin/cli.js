@@ -8,7 +8,14 @@ const socket = io('http://localhost:3000');
 console.log('connecting...');
 
 socket.on('connect', () => {
-    console.log(chalk.green('connected!')); 
+    console.log(chalk.green('connected!'));
+
+    // const aborter = new AbortController();
+    // const signalEventListener = (e) => {
+    //     if(e.aborted) e.aborted = false;
+    //     else e.aborted = true;
+    // };
+    // aborter.signal.addEventListener('abort', signalEventListener, { once: true });
 
     const rl = readline.createInterface({
         input: process.stdin,
@@ -16,7 +23,6 @@ socket.on('connect', () => {
     });
 
     const START = 0;
-    const EXIT = 1;
     
     rl.question('please state your nickname: ', (input) => {
         socket.emit('setnickname', input);     
@@ -32,7 +38,7 @@ socket.on('connect', () => {
                 console.log('finding opponent....');
                 socket.emit('start');
             } else { 
-
+                process.exit();
             }
         });
     });
@@ -41,8 +47,11 @@ socket.on('connect', () => {
         if(matchup.indexOf(socket.id) != -1) console.log(chalk.green('match found!'));
     });
 
-    socket.on('turn', (game) => {
+    socket.on('turn', (game, err) => {
         if(game[0] == socket.id || game[1] == socket.id) {
+            if(err) {
+                console.log(chalk.red(err));
+            }
             let player = 0;
             let opponent = 1;
             if(game[0] != socket.id) {
@@ -55,7 +64,7 @@ socket.on('connect', () => {
             if(isTurn == player) {
                 console.log(chalk.yellow('your turn!'));
                 rl.question('please enter column[1-6]: ', (move) => {
-                    socket.emit('turn', move);
+                    if(move!='e') socket.emit('turn', move);
                 });
             } else {
                 console.log(chalk.yellow('opponent\'s turn...'));
@@ -82,6 +91,22 @@ socket.on('connect', () => {
 
             socket.emit('end');
         }
+    });
+
+    socket.on('opponent_disconnected', (game) => {
+        const playerI = game[0];
+        const playerII = game[1];
+        const ID = socket.id;
+        if(playerI == ID || playerII == ID) {
+            rl.write('e\n');
+            console.log(chalk.red('\nopponent disconnected.\n'));
+            socket.emit('end');
+        }
+    });
+
+    socket.on('disconnect', () => {
+        console.log(chalk.red('server disconnected!'));
+        process.exit();
     });
 
     function printBoard(board) {
