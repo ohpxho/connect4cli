@@ -1,3 +1,5 @@
+//TODO:: function for draw
+
 const MAXLINECONNECTION = 4;
 
 function move(board, move, player) {
@@ -6,14 +8,18 @@ function move(board, move, player) {
 			board[i][move] = player;
 			return {
 				'newboard' : board, 
-				'droppos' : {'row':i, 'col':move}
+				'droppos' : {'row':i, 'col':move} //inserted position of the player move
 			};
 		}	
 	}
  
 	return -1;
 }
-	
+
+//The algorithm will check the four directions:horizontal, vertical, and sides of the given position where players made the move.
+//Following a dfs algorithm for checking the length of connected similar values in that position.
+//If the length of connected similar values is 4, then the players wins.
+
 function analyze(board, position, piece) {
 	const horizontal = checkHorizontal(board, position, piece);
 	const vertical = checkVertical(board, position, piece);
@@ -26,16 +32,6 @@ function analyze(board, position, piece) {
 
 	return false;
 }
-
-
-function reset(board) {
-
-}
-
-function surrender(board) {
-
-}
-
 
 function checkHorizontal(board, position, piece) {
 	let tempBoard = board.map((row) => {
@@ -144,7 +140,5 @@ function checkBackwardSide(board, position, piece) {
 
 module.exports = {
 	analyze,
-	move,
-	reset,
-	surrender
+	move
 }
