@@ -14,8 +14,10 @@ app.on('connect', (socket) => {
 		const player = socket.id;
   		console.log(`a client disconnected :: ${player}`);
   		deletePlayerFromList(_players, player);
-  		//In case that the player disconnected is in the middle of the game.
-  		//I need to notify the player's opponent about the disconnection and stop the game.
+  		/**
+		 * In case that the player disconnected is in the middle of the game.
+  		 * I need to notify the player's opponent about the disconnection and stop & delete the game.
+  		**/
   		if(isPlayerInGame(player)) {
   			const game = findGameByPlayerID(player);
   			deleteGameByPlayerID(_playersInGame, player);
@@ -55,9 +57,10 @@ app.on('connect', (socket) => {
   		const playerII = game[1];
   		let board = game[2];
   		const playerInMove = game[3];
-  		//The board has only 6 columns. The move should be at close interval of number of columns
+  		//The board has only 6 columns. The move should be at close interval of number of columns else it is invalid
   		if(move >= 1 && move <= 6) {
   			const playerMoveResult = dropPlayerMove(game, move);
+  			console.log(playerMoveResult);
   			const isWin = analyzeBoard(playerMoveResult.newboard, playerMoveResult.droppos, playerInMove); 
   			board = playerMoveResult.newboard;
 			if(isWin) {
@@ -88,6 +91,51 @@ function dropPlayerMove(game, move) {
 	return Game.move(board, columnToDrop, playerInMove);
 }
 
+function addPlayerInQueue(list, player) {
+	list.push(player);
+}
+
+function deletePlayerInQueue(list, player) {
+	list.splice(list.indexOf(player), 1);
+}
+
+function findPossibleOpponentFor(player) {
+	let opponent = null;
+	while(opponent == null || opponent == player) {
+		if(_playersInQueue.length > 1) opponent = _playersInQueue[Math.floor(Math.random() * _playersInQueue.length)];
+		else break;
+	}
+	return opponent;
+}
+
+function addPlayerInList(list, id, name) {
+	list[id] = name; 
+}
+
+function deletePlayerFromList(list, player) {
+	delete list[player];
+}
+
+function isPlayerInGame(player) {
+	for(i=0; i<_playersInGame.length; i++) {
+		const playerI = _playersInGame[i][0];
+		const playerII = _playersInGame[i][1];
+		if(playerI == player || playerII == player)
+			return true;
+	}
+	return false;
+}
+
+function findGameByPlayerID(player) {
+	for(i=0; i<_playersInGame.length; i++) {
+		const playerI = _playersInGame[i][0];
+		const playerII = _playersInGame[i][1];
+		if(playerI == player || playerII == player)
+			return _playersInGame[i];
+	}
+	return false;
+}
+
 function addNewGame(list, player, opponent) {
 	const playerToMove = Math.floor(Math.random() * 2);
 	const board = [
@@ -103,63 +151,6 @@ function addNewGame(list, player, opponent) {
 	list.push(initial);
 }
 
-function findPossibleOpponentFor(player) {
-	let opponent = null;
-	while(opponent == null || opponent == player) {
-		if(_playersInQueue.length > 1) opponent = _playersInQueue[Math.floor(Math.random() * _playersInQueue.length)];
-		else break;
-	}
-	return opponent;
-}
-
-function addPlayerInQueue(list, player) {
-	list.push(player);
-}
-
-function deletePlayerInQueue(list, player) {
-	list.splice(list.indexOf(player), 1);
-}
-
-function addPlayerInList(list, id, name) {
-	list[id] = name; 
-}
-
-function deletePlayerFromList(list, player) {
-	delete list[player];
-}
-
-function isPlayerInGame(player) {
-	for(i=0; i<_playersInGame.length; i++) {
-		const playerI = _playersInGame[i][0];
-		const playerII = _playersInGame[i][1];
-		if(playerI == player || playerII == player) {
-			return true;
-		}
-	}
-	return false;
-}
-
-function findGameByPlayerID(player) {
-	for(i=0; i<_playersInGame.length; i++) {
-		const playerI = _playersInGame[i][0];
-		const playerII = _playersInGame[i][1];
-		if(playerI == player || playerII == player) {
-			return _playersInGame[i];
-		}
-	}
-	return false;
-}
-
-function deleteGameByPlayerID(list, player) {
-	for(i=0; i<list.length; i++) {
-		const playerI = _playersInGame[i][0];
-		const playerII = _playersInGame[i][1];
-		if(playerI == player || playerII == player) {
-			list.splice(i, 1);
-		}
-	}
-}
-
 function updateGameByPlayerID(list, player, game) {
 	for(i=0;i<list.length;i++) {
 		const playerI = list[i][0];
@@ -168,5 +159,14 @@ function updateGameByPlayerID(list, player, game) {
 			list[i] = game;
 			return;
 		}		
+	}
+}
+
+function deleteGameByPlayerID(list, player) {
+	for(i=0; i<list.length; i++) {
+		const playerI = _playersInGame[i][0];
+		const playerII = _playersInGame[i][1];
+		if(playerI == player || playerII == player)
+			list.splice(i, 1);
 	}
 }

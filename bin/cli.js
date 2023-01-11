@@ -7,7 +7,6 @@ const io = require('socket.io-client');
 const socket = io(`http://localhost:${process.env.PORT}`);
 console.log('connecting...');
 
-const START = 0;
 const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
@@ -26,6 +25,7 @@ socket.on('connect', () => {
 
     socket.on('option', () => {
         rl.question('[start] => 0 :: [exit] => 1\nplease enter choice: ', (choice) => {
+            const START = 0;
             if(choice == START) {
                 console.log('finding opponent....');
                 socket.emit('start');
@@ -103,7 +103,8 @@ function isTurn(game, player) {
     const playerI = game[0];
     const playerToMove = game[3];
     const playerValue = (player == playerI)? 0 : 1;
-    if(playerValue == playerToMove) return true;
+    if(playerValue == playerToMove) 
+        return true;
     return false;
 }
 
