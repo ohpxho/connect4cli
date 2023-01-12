@@ -36,20 +36,16 @@ socket.on('connect', () => {
     });
 
     socket.on('matchFound', (matchup) => {
-        if(matchup.indexOf(socket.id) != -1) console.log(chalk.green('match found!'));
+        const ID = socket.id;
+        if(isPlayerInMatchUp(matchup, ID)) 
+            console.log(chalk.green('match found!'));
     });
 
-    socket.on('turn', (game, err) => {
-        const player = socket.id;
-        const playerI = game[0];
-        const playerII = game[1];
-        const board = game[2];
-        if(player == playerI || player == playerII) {
-            if(err) {
-                console.log(chalk.red(err));
-            }
-            printBoard(board);
-            if(isTurn(game, player)) {
+    socket.on('turn', (game) => {
+        const ID = socket.id;
+        if(isPlayerInGame(game, ID)) {
+            printBoard(game.board);
+            if(isTurn(game, ID)) {
                 console.log(chalk.yellow('your turn!'));
                 rl.question('please enter column[1-6]: ', (move) => {
                     socket.emit('turn', move);
@@ -61,16 +57,16 @@ socket.on('connect', () => {
 
     });
 
-    socket.on('win', (game) => {
-        const playerI = game[0];
-        const playerII = game[1];
-        const ID = socket.id;
-        const winningPlayer = game[3]; 
-        const board = game[2];
+    socket.on('error', (message) => {
+        console.log(chalk.red(message));
+    });
 
-        if(playerI == ID || playerII == ID) {
-            const player = (playerI == ID)? 0 : 1;
-            printBoard(board); 
+    socket.on('win', (game) => {
+        const ID = socket.id;
+        if(isPlayerInGame(game, ID)) {
+            const player = (game.playerI == ID)? 0 : 1;
+            const winningPlayer = game.playerToMove;
+            printBoard(game.board); 
             if(player == winningPlayer) {
                 console.log(chalk.green('\nYOU WIN!\n'));
             } else {
@@ -82,12 +78,19 @@ socket.on('connect', () => {
     });
 
     socket.on('opponent_disconnected', (game) => {
-        const playerI = game[0];
-        const playerII = game[1];
         const ID = socket.id;
-        if(playerI == ID || playerII == ID) {
+        if(game.playerI == ID || game.playerII == ID) {
             rl.write('e\n');
             console.log(chalk.red('\nopponent disconnected.\n'));
+            socket.emit('end');
+        }
+    });
+
+    socket.on('draw', (game) => {
+        const ID = socket.id;
+        if(game.playerI == ID || game.playerII == ID) {
+            printBoard(game.board); 
+            console.log(chalk.yellow('\nGAME DRAW!\n'));    
             socket.emit('end');
         }
     });
@@ -99,11 +102,17 @@ socket.on('connect', () => {
 
 });
 
+function isPlayerInMatchUp(matchup, id) {
+    return matchup.indexOf(id) != -1;
+}
+
+function isPlayerInGame(game, id) {
+    return (game.playerI == id || game.playerII == id);
+}
+
 function isTurn(game, player) {
-    const playerI = game[0];
-    const playerToMove = game[3];
-    const playerValue = (player == playerI)? 0 : 1;
-    if(playerValue == playerToMove) 
+    const playerValue = (player == game.playerI)? 0 : 1;
+    if(playerValue == game.playerToMove) 
         return true;
     return false;
 }

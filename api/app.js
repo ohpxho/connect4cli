@@ -5,7 +5,7 @@ const Game = require('./service/game.service');
 
 let _players = {};
 let _playersInQueue = [];
-let _playersInGame = []; //list of ongoing games with elements describing: [player 1, player 2, board, playerToMove];   
+let _playersInGame = []; //list of ongoing games with properties describing: {player 1, player 2, board, playerToMove};   
 
 app.on('connect', (socket) => {
 	console.log(`a client connected :: ${socket.id}`);
@@ -26,13 +26,26 @@ app.on('connect', (socket) => {
   	});
 
   	socket.on('setnickname', (name) => {
-  		addPlayerInList(_players, socket.id, name);
-  		socket.emit('welcome', `welcome, ${name}`);
-  		socket.emit('option');
+  		try {
+  			addPlayerInList(_players, socket.id, name);
+  			socket.emit('welcome', `welcome, ${name}`);
+  			socket.emit('option');
+  		} catch(e) {
+  			console.log(e.message);
+  			socket.on('error', 'server error.') 
+  		}
   	});
 
   	socket.on('end', () => {
-  		socket.emit('option');
+  		try {
+  			const player = socket.id;
+  			const game = findGameByPlayerID(player);
+  			deleteGameByPlayerID(_playersInGame, player);
+  			console.log(_playersInGame);
+  			socket.emit('option');
+  		} catch(e) {
+  			socket.on('error', `\nserver error: ${e.message}\n`);
+  		}
   	});
 
 
@@ -52,43 +65,54 @@ app.on('connect', (socket) => {
 
   	socket.on('turn', (move) => {
   		const player = socket.id;
-  		let game = findGameByPlayerID(player);
-  		const playerI = game[0];
-  		const playerII = game[1];
-  		let board = game[2];
-  		const playerInMove = game[3];
-  		//The board has only 6 columns. The move should be at close interval of number of columns else it is invalid
-  		if(move >= 1 && move <= 6) {
+	  	let game = findGameByPlayerID(player);
+  		try {
+  			const playerInMove = game.playerToMove;
+
+  			if((move < 1 || move > 6) || isNaN(move))
+  				throw new Error('invalid move. try again.');
+
   			const playerMoveResult = dropPlayerMove(game, move);
-  			console.log(playerMoveResult);
+  			
+  			if(playerMoveResult == -1)
+  				throw new Error('invalid move. try again.');
+
   			const isWin = analyzeBoard(playerMoveResult.newboard, playerMoveResult.droppos, playerInMove); 
-  			board = playerMoveResult.newboard;
-			if(isWin) {
+  			if(isWin) {
 				deleteGameByPlayerID(_playersInGame, player);
 				app.emit('win', game);
 			} else {
-				const playerToMove = (playerInMove == 1)? 0 : 1;
-				game = [playerI, playerII, board, playerToMove];
+				game.board = playerMoveResult.newboard;
+				game.playerToMove = (playerInMove == 1)? 0 : 1;
+				
+				if(isDraw(game.board)) {
+  					app.emit('draw', game);
+  					return;
+  				}
+
 				updateGameByPlayerID(_playersInGame, player, game);
 				app.emit('turn', game);
 			}	
-  		} else {
-  			socket.emit('turn', game, '\ninvalid move. try again.\n');	
+  		} catch(e) {
+  			socket.emit('error', `\n${e.message}\n`);
+  			socket.emit('turn', game);	
   		}
   	});
-
-
 });
+
+
+function isDraw(board) {
+	return Game.isBoardFull(board);
+}
 
 function analyzeBoard(newBoard, lastPositionInserted, playerInMove) {
 	return Game.analyze(newBoard, lastPositionInserted, playerInMove);
 }
 
 function dropPlayerMove(game, move) {
-	const board = game[2];
-	const playerInMove = game[3];
+	const playerInMove = game.playerToMove;
 	const columnToDrop = move-1;
-	return Game.move(board, columnToDrop, playerInMove);
+	return Game.move(game.board, columnToDrop, playerInMove);
 }
 
 function addPlayerInQueue(list, player) {
@@ -118,8 +142,8 @@ function deletePlayerFromList(list, player) {
 
 function isPlayerInGame(player) {
 	for(i=0; i<_playersInGame.length; i++) {
-		const playerI = _playersInGame[i][0];
-		const playerII = _playersInGame[i][1];
+		const playerI = _playersInGame[i].playerI;
+		const playerII = _playersInGame[i].playerII;
 		if(playerI == player || playerII == player)
 			return true;
 	}
@@ -128,8 +152,8 @@ function isPlayerInGame(player) {
 
 function findGameByPlayerID(player) {
 	for(i=0; i<_playersInGame.length; i++) {
-		const playerI = _playersInGame[i][0];
-		const playerII = _playersInGame[i][1];
+		const playerI = _playersInGame[i].playerI;
+		const playerII = _playersInGame[i].playerII;
 		if(playerI == player || playerII == player)
 			return _playersInGame[i];
 	}
@@ -147,14 +171,20 @@ function addNewGame(list, player, opponent) {
 		[-1,-1,-1,-1,-1,-1],
 		[-1,-1,-1,-1,-1,-1]
 	];
-	const initial = [player, opponent, board, playerToMove];
+	const initial = {
+		'playerI': player, 
+		'playerII': opponent, 
+		'board': board, 
+		'playerToMove': playerToMove
+	};
+
 	list.push(initial);
 }
 
 function updateGameByPlayerID(list, player, game) {
 	for(i=0;i<list.length;i++) {
-		const playerI = list[i][0];
-		const playerII = list[i][1];
+		const playerI = list[i].playerI;
+		const playerII = list[i].playerII;
 		if(player == playerI || player == playerII) {
 			list[i] = game;
 			return;
@@ -164,8 +194,8 @@ function updateGameByPlayerID(list, player, game) {
 
 function deleteGameByPlayerID(list, player) {
 	for(i=0; i<list.length; i++) {
-		const playerI = _playersInGame[i][0];
-		const playerII = _playersInGame[i][1];
+		const playerI = _playersInGame[i].playerI;
+		const playerII = _playersInGame[i].playerII;
 		if(playerI == player || playerII == player)
 			list.splice(i, 1);
 	}

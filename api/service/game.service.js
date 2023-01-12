@@ -1,5 +1,3 @@
-//TODO need to create a function for draw
-
 const MAXLINECONNECTION = 4;
 
 function move(board, move, player) {
@@ -14,6 +12,14 @@ function move(board, move, player) {
 	}
  
 	return -1;
+}
+
+function isBoardFull(board) {
+	for(i = 0; i < board.length; i++) {
+		if(board[i].indexOf(-1) >= 0) 
+			return false;
+	}
+	return true;
 }
 
 /** 
@@ -38,7 +44,7 @@ function analyze(board, position, piece) {
 function checkHorizontal(board, position, piece) {
 	/**
 	 * I need to copy the board into new array to prevent modifying it,
-	   because visited indices value will be modified replaced into -1
+	   because visited indices value will be modified into -1
 	**/
 	let tempBoard = cloneBoard(board);
 	let lineLength = 1;
@@ -199,5 +205,6 @@ function cloneBoard(board) {
 
 module.exports = {
 	analyze,
-	move
+	move,
+	isBoardFull
 }

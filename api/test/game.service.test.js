@@ -16,6 +16,11 @@ const inputs = {
 		'board': [[-1,-1,-1,-1,-1,-1], [-1,-1,-1,-1,-1,-1], [-1,-1,-1,-1,-1,-1], [-1,-1,-1,-1,-1,-1], [-1,-1,-1,-1,-1,-1], [-1,-1,-1,-1,-1,-1], [1,-1,-1,-1,-1,-1]],
 		'move': 7,
 		'playerToMove': 0 	
+	},
+	d: {
+		'board': [[1,-1,-1,-1,-1,-1], [1,-1,-1,-1,-1,-1], [1,-1,-1,-1,-1,-1], [1,-1,-1,-1,-1,-1], [1,-1,-1,-1,-1,-1], [1,-1,-1,-1,-1,-1], [1,-1,-1,-1,-1,-1]],
+		'move': 0,
+		'playerToMove': 0 	
 	}
 }
 
@@ -34,7 +39,8 @@ const outputs = {
 			'col': 0
 		}
 	},
-	c: -1
+	c: -1,
+	d: -1
 }
 
 describe('Testing Game Service', () => {
@@ -46,5 +52,8 @@ describe('Testing Game Service', () => {
 	});
 	it('test input c', () => {
 		expect(Game.move(inputs.c.board, inputs.c.move, inputs.c.playerToMove)).to.equal(outputs.c);
+	});
+	it('test input d', () => {
+		expect(Game.move(inputs.d.board, inputs.d.move, inputs.d.playerToMove)).to.equal(outputs.d);
 	});
 });
